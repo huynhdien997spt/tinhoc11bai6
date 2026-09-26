@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tin học 11 — Bài 6. Lưu trữ và chia sẻ tệp tin trên Internet</title>
+<style>
+:root{
+  --blue-900:#0b3d63; --blue-700:#1464a3; --blue-500:#1f8fe0; --cyan-400:#3fd0e6;
+  --amber-500:#f5b234; --violet-400:#9b7fe8; --violet-100:#f1ecfd;
+  --ink:#0f2a3d; --paper:#f6f9fc; --paper-2:#eef3f8; --line:#d6e3ee; --white:#fff;
+  --good:#1f9d55; --bad:#d84343; --radius:14px; --shadow:0 6px 20px rgba(11,61,99,0.10);
+  --font:"Segoe UI","Inter",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{font-family:var(--font); background:var(--paper); color:var(--ink); min-height:100vh; line-height:1.5;}
+h1,h2,h3,h4{margin:0 0 8px 0; font-weight:700;}
+button{font-family:inherit; cursor:pointer;}
+.hidden{display:none !important;}
+img{max-width:100%;}
+
+#topbar{position:sticky; top:0; z-index:50; background:var(--white); border-bottom:1px solid var(--line);
+  padding:10px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+#topbar .brand{font-weight:800; color:var(--blue-900); white-space:nowrap; font-size:14px;}
+#progress-wrap{flex:1; min-width:160px;}
+#progress-track{background:var(--paper-2); border-radius:999px; height:12px; overflow:hidden; border:1px solid var(--line);}
+#progress-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--blue-500),var(--cyan-400)); transition:width .5s ease;}
+#progress-label{font-size:12px; color:#4c6f88; margin-top:4px;}
+.xp-badge{background:var(--amber-500); color:#4a3300; font-weight:700; font-size:13px; padding:5px 12px; border-radius:999px; white-space:nowrap;}
+.icon-btn{background:var(--paper-2); border:1px solid var(--line); border-radius:10px; padding:6px 10px; font-size:13px; color:var(--blue-900);}
+#sync-badge{font-size:11px; padding:3px 8px; border-radius:999px; white-space:nowrap;}
+#sync-badge.demo{background:#fdeccb; color:#7a5200;}
+#sync-badge.synced{background:#dcf5e5; color:var(--good);}
+#sync-badge.pending{background:#fde3e3; color:var(--bad);}
+
+#app{max-width:940px; margin:0 auto; padding:22px 16px 90px;}
+.screen{animation:fadein .35s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+.card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:18px;}
+.section-title{display:flex; align-items:center; gap:10px; color:var(--blue-900); font-size:22px; margin-bottom:4px;}
+.section-sub{color:#4c6f88; margin-bottom:18px; font-size:14px;}
+.pill{display:inline-block; background:var(--paper-2); border:1px solid var(--line); border-radius:999px; padding:3px 12px; font-size:12px; color:var(--blue-700); font-weight:600;}
+.pill-violet{background:var(--violet-100); color:var(--violet-400); border-color:#e2d6fb;}
+
+.btn{border:none; border-radius:10px; padding:11px 20px; font-weight:700; font-size:14.5px; transition:transform .12s ease;}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--blue-500); color:#fff;}
+.btn-primary:hover{background:var(--blue-700);}
+.btn-secondary{background:var(--paper-2); color:var(--blue-900); border:1px solid var(--line);}
+.btn-amber{background:var(--amber-500); color:#4a3300;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;}
+
+input[type=text], select, textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-family:inherit; font-size:14.5px; background:var(--paper);}
+textarea{resize:vertical; min-height:70px;}
+label.field-label{display:block; font-weight:700; font-size:13px; color:var(--blue-900); margin-bottom:6px;}
+.field{margin-bottom:14px;}
+
+.toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--blue-900); color:#fff;
+  padding:10px 18px; border-radius:999px; font-size:13.5px; box-shadow:var(--shadow); z-index:200; opacity:0;
+  pointer-events:none; transition:opacity .25s ease, transform .25s ease;}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+
+#save-end-btn{position:fixed; right:18px; bottom:18px; z-index:60; background:var(--white); border:1px solid var(--line);
+  box-shadow:var(--shadow); border-radius:999px; padding:11px 18px; font-weight:700; color:var(--blue-900); font-size:13.5px;}
+
+.welcome-hero{text-align:center; padding:20px 10px 6px;}
+.cloud-graphic{font-size:52px; margin-bottom:6px;}
+.welcome-hero h1{font-size:24px; color:var(--blue-900);}
+.welcome-hero .topic{color:var(--blue-700); font-weight:700; font-size:13px; letter-spacing:.3px;}
+.welcome-meta{display:flex; justify-content:center; gap:18px; flex-wrap:wrap; margin:14px 0 6px; font-size:13.5px; color:#4c6f88;}
+
+.drive{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--paper);}
+.drive-toolbar{display:flex; gap:10px; align-items:center; padding:12px; background:var(--white); border-bottom:1px solid var(--line); flex-wrap:wrap;}
+.drive-toolbar input{flex:1; min-width:140px;}
+.drive-body{padding:10px; min-height:120px;}
+.file-row{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; background:var(--white);
+  border:1px solid var(--line); margin-bottom:8px; font-size:14px;}
+.file-row:hover{background:#eaf5ff;}
+.file-row .emoji{font-size:20px;}
+.file-row .name{flex:1;}
+.file-row .actions{display:flex; gap:6px;}
+.file-row .actions button{border:none; background:var(--paper-2); border-radius:8px; padding:5px 9px; font-size:12px; color:var(--blue-700);}
+.upload-progress{height:8px; border-radius:999px; background:var(--paper-2); overflow:hidden; margin-top:6px;}
+.upload-progress .bar{height:100%; width:0%; background:var(--blue-500); transition:width .25s linear;}
+
+.dnd-zone-row{display:flex; gap:14px; flex-wrap:wrap; margin:14px 0;}
+.dnd-zone{flex:1; min-width:150px; border:2px dashed var(--line); border-radius:12px; padding:16px; text-align:center;
+  background:var(--paper); font-weight:700; color:var(--blue-700); font-size:13.5px;}
+.dnd-zone.dragover{background:#e2f3ff; border-color:var(--blue-500);}
+
+.choice-list{display:flex; flex-direction:column; gap:10px; margin-top:12px;}
+.choice-btn{text-align:left; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+  font-size:14.5px; color:var(--ink); font-weight:500;}
+.choice-btn:hover{border-color:var(--blue-500);}
+.choice-btn.correct{background:#dcf5e5; border-color:var(--good); font-weight:700;}
+.choice-btn.incorrect{background:#fde3e3; border-color:var(--bad);}
+.feedback-box{margin-top:12px; padding:12px 14px; border-radius:10px; font-size:13.5px; display:none;}
+.feedback-box.show{display:block;}
+.feedback-box.good{background:#dcf5e5; color:#155c31;}
+.feedback-box.bad{background:#fdeccb; color:#7a4b00;}
+
+.match-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
+.match-item{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center; font-weight:600; font-size:13.5px;}
+.match-item.selected{border-color:var(--blue-500); background:#e2f3ff;}
+.match-item.matched{background:#dcf5e5; border-color:var(--good);}
+
+.checklist{list-style:none; padding:0; margin:14px 0;}
+.checklist li{padding:6px 0; font-size:14.5px;}
+.checklist li:before{content:"✓ "; color:var(--good); font-weight:900;}
+
+.quiz-progress{font-size:13px; color:#4c6f88; margin-bottom:8px;}
+
+.badge-grid{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+.badge{background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:13px;
+  font-weight:700; color:var(--blue-900); display:flex; align-items:center; gap:6px; opacity:.35;}
+.badge.earned{opacity:1; background:#fff6de; border-color:var(--amber-500);}
+
+.modal-overlay{position:fixed; inset:0; background:rgba(11,42,61,0.45); display:flex; align-items:center; justify-content:center; z-index:300; padding:16px;}
+.modal-box{background:var(--white); border-radius:var(--radius); padding:22px; max-width:480px; width:100%; box-shadow:var(--shadow); max-height:88vh; overflow-y:auto;}
+.share-recipients{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
+.recipient-chip{background:var(--paper-2); border-radius:999px; padding:4px 10px; font-size:12.5px;}
+
+.stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin:14px 0;}
+.stat-card{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;}
+.stat-card .num{font-size:22px; font-weight:800; color:var(--blue-900);}
+.stat-card .lbl{font-size:11.5px; color:#4c6f88;}
+table.roster-table{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:10px;}
+table.roster-table th, table.roster-table td{border-bottom:1px solid var(--line); padding:7px 8px; text-align:left;}
+.filters-row{display:flex; gap:8px; flex-wrap:wrap; margin:10px 0;}
+.filters-row select, .filters-row input{width:auto; min-width:120px;}
+
+.mindmap-demo{display:flex; flex-direction:column; align-items:center; gap:10px; padding:18px 6px;}
+.mindmap-center{background:var(--blue-900); color:#fff; border-radius:14px; padding:12px 18px; font-weight:800; text-align:center; font-size:14px;}
+.mindmap-branches{display:flex; gap:10px; flex-wrap:wrap; justify-content:center;}
+.mindmap-branch{background:var(--paper-2); border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-weight:700; font-size:13px; color:var(--blue-700);}
+
+.game-task-card{border:1px solid var(--line); border-radius:12px; padding:16px; background:var(--paper); margin-bottom:14px;}
+
+@media (max-width:600px){ .match-grid{grid-template-columns:1fr;} .welcome-hero h1{font-size:20px;} }
+</style>
+</head>
+<body>
+
+<div id="topbar" class="hidden">
+  <div class="brand">☁️ TIN HỌC 11 · BÀI 6</div>
+  <div id="progress-wrap">
+    <div id="progress-track"><div id="progress-fill"></div></div>
+    <div id="progress-label">Tiến độ bài học: 0%</div>
+  </div>
+  <span id="sync-badge" class="demo">DEMO MODE</span>
+  <span class="xp-badge">⭐ <span id="xp-display">0</span> XP</span>
+  <button class="icon-btn" onclick="openTeacherLogin()">👨‍🏫 Teacher</button>
+  <button class="icon-btn" onclick="changeStudent()">👤 Đổi học sinh</button>
+</div>
+
+<div id="app"></div>
+
+<button id="save-end-btn" class="hidden" onclick="saveAndEnd()">💾 Lưu & kết thúc buổi học</button>
+<div id="toast" class="toast"></div>
+
+<script>
+/* =====================================================
+   CONFIG — GIÁO VIÊN CHỈ CẦN SỬA VÙNG NÀY
+   ===================================================== */
+const CONFIG = {
+  teacherName: "Huỳnh Văn Diễn",
+  teacherCode: "GV2026",
+  lessonId: "TIN11_BAI6",
+  lessonName: "Bài 6. Lưu trữ và chia sẻ tệp tin trên Internet",
+  schoolYear: "2026-2027",
+  googleScriptUrl: "PASTE_GOOGLE_APPS_SCRIPT_URL_HERE"
+};
+
+const DEMO_MODE = !CONFIG.googleScriptUrl || CONFIG.googleScriptUrl.indexOf("PASTE_") === 0;
+
+const FALLBACK_ROSTER = [
+  {StudentID:"HS001", HoTen:"Nguyễn Văn An", Lop:"11A1"},
+  {StudentID:"HS002", HoTen:"Trần Minh Bình", Lop:"11A1"},
+  {StudentID:"HS003", HoTen:"Lê Thị Chi", Lop:"11A1"},
+  {StudentID:"HS004", HoTen:"Phạm Văn Dũng", Lop:"11A2"},
+  {StudentID:"HS005", HoTen:"Đỗ Thị Hoa", Lop:"11A2"}
+];
+
+/* =====================================================
+   STATE
+   ===================================================== */
+let state = null;
+let roster = [];
+let currentShareTarget = null;
+let heartbeatTimer = null;
+
+const ACTIVITY_WEIGHTS = {
+  "cloud-intro":6, "match-services":6,
+  "create-folder":6, "rename-file":5, "upload-file":6, "download-file":5, "search-file":6,
+  "share-1":6, "share-2":6, "share-3":6,
+  "game-1":4, "game-2":4, "game-3":4, "game-4":4, "game-5":4,
+  "quiz":12, "exit-ticket":6, "mindmap":4
+};
+
+function $(sel){ return document.querySelector(sel); }
+function nowIso(){ return new Date().toISOString(); }
+function showToast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(()=>t.classList.remove("show"), 1900);
+}
+const POSITIVE_MESSAGES = ["Chuẩn luôn! ☁️","Đúng quyền rồi! 🔐","Cloud Master! +10 XP","Hay lắm, tiếp tục nhé! 🚀","File đã về đúng nhà! 📁","Chính xác! Em vừa kết nối đúng dịch vụ với nhà cung cấp. ☁️"];
+const GENTLE_MESSAGES = ["Chưa chính xác. Hãy xem người này cần XEM hay cần SỬA nhé. 👀","Thử lại một lần nữa nhé!","Suýt đúng rồi! Hãy thử nhìn lại nhé. 👀"];
+function randomPositive(){ return POSITIVE_MESSAGES[Math.floor(Math.random()*POSITIVE_MESSAGES.length)]; }
+function randomGentle(){ return GENTLE_MESSAGES[Math.floor(Math.random()*GENTLE_MESSAGES.length)]; }
+
+/* =====================================================
+   INIT
+   ===================================================== */
+function initApp(){
+  $("#sync-badge").textContent = DEMO_MODE ? "DEMO MODE" : "☁ Sẵn sàng";
+  $("#sync-badge").className = DEMO_MODE ? "demo" : "";
+  renderLogin();
+  loadRoster();
+}
+
+function studentKey(studentId){
+  return `${CONFIG.lessonId}_${CONFIG.schoolYear}_${studentId}`;
+}
+
+/* =====================================================
+   API HELPER
+   ===================================================== */
+async function callScript(action, payload){
+  if(DEMO_MODE) return {ok:false, demo:true};
+  try{
+    const res = await fetch(CONFIG.googleScriptUrl, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({action, ...payload})
+    });
+    return await res.json();
+  }catch(err){
+    console.error("callScript error", action, err);
+    return {ok:false, error:String(err)};
+  }
+}
+
+/* =====================================================
+   ROSTER / LOGIN
+   ===================================================== */
+async function loadRoster(){
+  const cached = localStorage.getItem("roster_cache_"+CONFIG.schoolYear);
+  if(cached){ try{ roster = JSON.parse(cached); populateClassDropdown(); }catch(e){} }
+  if(DEMO_MODE){
+    roster = FALLBACK_ROSTER;
+    localStorage.setItem("roster_cache_"+CONFIG.schoolYear, JSON.stringify(roster));
+    populateClassDropdown();
+    return;
+  }
+  const res = await callScript("getRoster", {schoolYear: CONFIG.schoolYear});
+  if(res && res.ok && Array.isArray(res.roster) && res.roster.length){
+    roster = res.roster;
+    localStorage.setItem("roster_cache_"+CONFIG.schoolYear, JSON.stringify(roster));
+    populateClassDropdown();
+  } else if(!roster.length){
+    roster = FALLBACK_ROSTER;
+    populateClassDropdown();
+    showToast("Không tải được danh sách từ máy chủ — dùng danh sách mẫu.");
+  } else {
+    showToast("Đang sử dụng danh sách học sinh đã lưu trên thiết bị.");
+  }
+}
+function classList(){ return [...new Set(roster.map(r=>r.Lop))].sort(); }
+function populateClassDropdown(){
+  const sel = $("#login-class");
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Chọn lớp --</option>' + classList().map(c=>`<option value="${c}">${c}</option>`).join("");
+}
+function onClassChange(){
+  const cls = $("#login-class").value;
+  const nameSel = $("#login-name");
+  const startBtn = $("#login-start-btn");
+  if(!cls){ nameSel.innerHTML='<option value="">-- Chọn lớp trước --</option>'; nameSel.disabled=true; startBtn.disabled=true; return; }
+  const students = roster.filter(r=>r.Lop===cls);
+  nameSel.innerHTML = '<option value="">-- Chọn họ và tên --</option>' + students.map(s=>`<option value="${s.StudentID}">${s.HoTen}</option>`).join("");
+  nameSel.disabled = false;
+  onNameChange();
+}
+function onNameChange(){
+  const sid = $("#login-name").value;
+  $("#login-start-btn").disabled = !sid;
+  const box = $("#login-returning-box");
+  if(!sid){ box.innerHTML=""; return; }
+  const key = studentKey(sid);
+  const saved = localStorage.getItem("progress_"+key);
+  if(saved){
+    try{
+      const s = JSON.parse(saved);
+      const sectionNames = {1:"Khởi động & Khám phá Cloud",2:"Cloud Drive Lab",3:"Chia sẻ & Phân quyền",4:"Cloud Rescue",5:"Quiz + Exit Ticket + Mindmap"};
+      box.innerHTML = `<div class="pill">👋 Lần trước em đã hoàn thành ${Math.round(s.progressPercent||0)}% — Phần ${s.currentSection}: ${sectionNames[s.currentSection]||''}</div>`;
+    }catch(e){ box.innerHTML=""; }
+  } else { box.innerHTML=""; }
+}
+function renderLogin(){
+  $("#topbar").classList.add("hidden");
+  $("#save-end-btn").classList.add("hidden");
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card welcome-hero">
+      <div class="cloud-graphic">💻 ☁ 📱</div>
+      <div class="topic">TIN HỌC 11</div>
+      <h1>BÀI 6 — LƯU TRỮ VÀ CHIA SẺ<br>TỆP TIN TRÊN INTERNET</h1>
+      <div class="welcome-meta">
+        <span>👨‍🏫 Giáo viên: ${CONFIG.teacherName}</span>
+        <span>⏱ 2 tiết – 90 phút</span>
+      </div>
+    </div>
+    <div class="card" style="max-width:420px; margin:0 auto;">
+      <div class="field">
+        <label class="field-label">LỚP</label>
+        <select id="login-class" onchange="onClassChange()"><option value="">Đang tải danh sách…</option></select>
+      </div>
+      <div class="field">
+        <label class="field-label">HỌ VÀ TÊN</label>
+        <select id="login-name" onchange="onNameChange()" disabled><option value="">-- Chọn lớp trước --</option></select>
+      </div>
+      <div id="login-returning-box"></div>
+      <div class="btn-row">
+        <button id="login-start-btn" class="btn btn-primary" disabled onclick="loginStudent()">▶ BẮT ĐẦU / TIẾP TỤC BÀI HỌC</button>
+      </div>
+    </div>
+  </div>`;
+  populateClassDropdown();
+}
+
+async function loginStudent(){
+  const cls = $("#login-class").value;
+  const sid = $("#login-name").value;
+  if(!cls || !sid) return;
+  const stu = roster.find(r=>r.StudentID===sid);
+  const key = studentKey(sid);
+  const cached = localStorage.getItem("progress_"+key);
+  if(cached){ try{ state = JSON.parse(cached); }catch(e){ state=null; } }
+
+  if(!state){
+    let remote = null;
+    if(!DEMO_MODE){
+      const res = await callScript("getStudentProgress", {studentKey:key});
+      if(res && res.ok && res.progress) remote = res.progress;
+    }
+    if(remote){
+      state = remote;
+    } else {
+      state = {
+        studentId: sid, hoTen: stu ? stu.HoTen : sid, lop: cls, schoolYear: CONFIG.schoolYear, lessonId: CONFIG.lessonId,
+        currentSection:1, currentActivity:"", completedActivities:[], answers:{},
+        quizScore:0, xp:0, combo:0, progressPercent:0,
+        startTime: nowIso(), lastAccess: nowIso(), activeLearningTime:0, fastCompletion:false,
+        exitTicket:{}, quizWrong:[]
+      };
+      await callScript("registerStudent", {studentKey:key, studentId:sid, hoTen:state.hoTen, lop:cls, schoolYear:CONFIG.schoolYear, lessonId:CONFIG.lessonId});
+    }
+  }
+  state.lastAccess = nowIso();
+  saveLocalProgress();
+  $("#topbar").classList.remove("hidden");
+  $("#save-end-btn").classList.remove("hidden");
+  updateProgressBar();
+  startHeartbeat();
+  renderSection(state.currentSection);
+}
+
+function changeStudent(){
+  saveLocalProgress();
+  if(!DEMO_MODE) syncToGoogleSheets();
+  stopHeartbeat();
+  state = null;
+  renderLogin();
+}
+
+/* =====================================================
+   TIME TRACKING (active learning time)
+   ===================================================== */
+function startHeartbeat(){
+  stopHeartbeat();
+  heartbeatTimer = setInterval(()=>{
+    if(document.visibilityState === "visible" && state){
+      state.activeLearningTime = (state.activeLearningTime||0) + 15;
+      saveLocalProgress();
+    }
+  }, 15000);
+}
+function stopHeartbeat(){ if(heartbeatTimer) clearInterval(heartbeatTimer); heartbeatTimer=null; }
+
+/* =====================================================
+   PROGRESS / SAVE
+   ===================================================== */
+function saveLocalProgress(){ if(state) localStorage.setItem("progress_"+studentKey(state.studentId), JSON.stringify(state)); }
+
+function computeProgress(){
+  let total = 0;
+  Object.keys(ACTIVITY_WEIGHTS).forEach(act=>{ if(state.completedActivities.includes(act)) total += ACTIVITY_WEIGHTS[act]; });
+  state.progressPercent = Math.min(100, Math.round(total));
+}
+function updateProgressBar(){
+  computeProgress();
+  $("#progress-fill").style.width = state.progressPercent + "%";
+  $("#progress-label").textContent = "Tiến độ bài học: " + state.progressPercent + "%";
+  $("#xp-display").textContent = state.xp;
+}
+function addXP(n){ state.xp += n; updateProgressBar(); }
+
+function completeActivity(actId){
+  if(!state.completedActivities.includes(actId)) state.completedActivities.push(actId);
+  updateProgressBar();
+  saveLocalProgress();
+  queueSync();
+  showToast("✓ Đã lưu tiến độ");
+}
+function queueSync(){
+  if(DEMO_MODE) return;
+  clearTimeout(queueSync._tm);
+  queueSync._tm = setTimeout(syncToGoogleSheets, 900);
+}
+async function syncToGoogleSheets(){
+  if(DEMO_MODE || !state) return;
+  $("#sync-badge").className="pending"; $("#sync-badge").textContent="☁ Đang đồng bộ...";
+  const res = await callScript("saveProgress", {
+    studentKey: studentKey(state.studentId), studentId: state.studentId,
+    hoTen: state.hoTen, lop: state.lop, schoolYear: state.schoolYear, lessonId: state.lessonId,
+    currentSection: state.currentSection, currentActivity: state.currentActivity,
+    progressPercent: state.progressPercent, xp: state.xp, quizScore: state.quizScore,
+    activeLearningTime: state.activeLearningTime, fastCompletion: state.fastCompletion,
+    startTime: state.startTime, lastAccess: state.lastAccess
+  });
+  if(res && res.ok){ $("#sync-badge").className="synced"; $("#sync-badge").textContent="✓ Đã đồng bộ"; }
+  else { $("#sync-badge").className="pending"; $("#sync-badge").textContent="☁ Chờ đồng bộ"; }
+}
+async function saveAndEnd(){
+  if(!state) return;
+  saveLocalProgress();
+  await syncToGoogleSheets();
+  const sectionNames = {1:"Khởi động & Khám phá Cloud",2:"Cloud Drive Lab",3:"Chia sẻ & Phân quyền",4:"Cloud Rescue",5:"Quiz + Exit Ticket + Mindmap"};
+  $("#app").insertAdjacentHTML("beforeend", `
+  <div class="modal-overlay" id="save-end-modal">
+    <div class="modal-box" style="text-align:center;">
+      <h2>✅ ĐÃ LƯU BUỔI HỌC</h2>
+      <p><strong>${state.hoTen}</strong><br>Lớp: ${state.lop}</p>
+      <p>Tiến độ hiện tại: <strong>${state.progressPercent}%</strong></p>
+      <p>Em đang ở:<br><strong>PHẦN ${state.currentSection}</strong><br>${sectionNames[state.currentSection]}</p>
+      <p style="font-size:13px; color:#4c6f88;">Buổi sau hãy chọn lại đúng Lớp + Họ tên để tiếp tục bài học.</p>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn btn-secondary" onclick="document.getElementById('save-end-modal').remove()">Đóng</button>
+        <button class="btn btn-primary" onclick="changeStudent(); document.getElementById('save-end-modal')?.remove();">👤 ĐỔI HỌC SINH</button>
+      </div>
+    </div>
+  </div>`);
+}
+
+/* =====================================================
+   SECTION ROUTER
+   ===================================================== */
+function goToSection(n){
+  state.currentSection = n;
+  saveLocalProgress();
+  queueSync();
+  renderSection(n);
+}
+function renderSection(n){
+  updateProgressBar();
+  if(n===1) renderSection1();
+  else if(n===2) renderSection2();
+  else if(n===3) renderSection3();
+  else if(n===4) renderSection4();
+  else if(n===5) renderSection5();
+  else renderCompletion();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function sectionUnlocked(n){
+  if(n<=1) return true;
+  if(n===2) return state.completedActivities.includes("match-services");
+  if(n===3){
+    const done = ["create-folder","upload-file"].filter(a=>state.completedActivities.includes(a)).length +
+                 (state.completedActivities.includes("download-file")||state.completedActivities.includes("search-file")?1:0);
+    return done>=2;
+  }
+  if(n===4) return ["share-1","share-2","share-3"].every(a=>state.completedActivities.includes(a));
+  if(n===5) return ["game-1","game-2","game-3","game-4","game-5"].filter(a=>state.completedActivities.includes(a)).length>=4;
+  return true;
+}
+
+/* =====================================================
+   PHẦN 1 — KHỞI ĐỘNG & KHÁM PHÁ CLOUD
+   ===================================================== */
+function renderSection1(){
+  const done1 = state.completedActivities.includes("cloud-intro");
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card">
+      <span class="pill">PHẦN 1 · KHỞI ĐỘNG</span>
+      <div class="section-title">☁️ Kế hoạch nhóm đang ở đâu?</div>
+      <div class="section-sub">Một nhóm học sinh đang làm bài tập chung. Tệp "Kế hoạch nhóm.docx" chỉ nằm trên máy của một thành viên.</div>
+      <p><strong>Làm thế nào để các thành viên cùng truy cập và làm việc với tệp mà không cần gửi đi gửi lại nhiều phiên bản?</strong></p>
+      <div class="choice-list">
+        <button class="choice-btn" onclick="answerKickoff(this,false)">Chép ra USB rồi chuyền tay từng bạn.</button>
+        <button class="choice-btn" onclick="answerKickoff(this,false)">Gửi file qua nhiều tin nhắn liên tục.</button>
+        <button class="choice-btn" onclick="answerKickoff(this,true)">Đưa tệp lên ổ đĩa trực tuyến và chia sẻ cho cả nhóm.</button>
+      </div>
+      <div id="s1-feedback" class="feedback-box"></div>
+      ${done1 ? `
+      <div class="feedback-box show good" style="margin-top:14px;">
+        <strong>Ổ đĩa trực tuyến (Cloud Storage)</strong> = không gian lưu trữ dữ liệu được cung cấp thông qua Internet.<br>
+        MÁY TÍNH → ☁ CLOUD → PC / Tablet / Phone.
+      </div>` : ""}
+    </div>
+    ${done1 ? `
+    <div class="card">
+      <div class="section-title">🔗 Ghép dịch vụ với nhà cung cấp</div>
+      <div class="section-sub">Mỗi cặp đúng: +10 XP.</div>
+      <div id="match-area">${renderMatchActivity()}</div>
+    </div>` : ""}
+    <div class="btn-row">
+      <button class="btn btn-primary" ${sectionUnlocked(2)?"":"disabled"} onclick="goToSection(2)">TIẾP THEO: Cloud Drive Lab →</button>
+    </div>
+  </div>`;
+}
+function answerKickoff(btn, isCorrect){
+  document.querySelectorAll(".choice-list .choice-btn").forEach(b=>b.disabled=true);
+  const fb = $("#s1-feedback");
+  fb.classList.add("show");
+  if(isCorrect){
+    btn.classList.add("correct");
+    fb.className="feedback-box show good";
+    fb.innerHTML = randomPositive() + " Đưa tệp lên Cloud giúp mọi người luôn dùng đúng một phiên bản mới nhất.";
+  } else {
+    btn.classList.add("incorrect");
+    fb.className="feedback-box show bad";
+    fb.innerHTML = randomGentle() + " Cách này dễ khiến các bạn có nhiều phiên bản khác nhau của tệp.";
+  }
+  completeActivity("cloud-intro");
+  addXP(6);
+  renderSection1();
+}
+const MATCH_PAIRS = [{company:"Google",service:"Google Drive"},{company:"Microsoft",service:"OneDrive"},{company:"Apple",service:"iCloud"},{company:"Dropbox",service:"Dropbox"}];
+function renderMatchActivity(){
+  if(!state._matchState) state._matchState = {matched:[]};
+  const companies = MATCH_PAIRS.map(p=>p.company);
+  const services = [...MATCH_PAIRS.map(p=>p.service)].sort(()=>Math.random()-0.5);
+  let html = `<div class="match-grid">`;
+  companies.forEach(c=>{
+    const isMatched = state._matchState.matched.includes(c);
+    html += `<div class="match-item ${isMatched?'matched':''}" onclick="selectMatch('company','${c}')" id="mc-${c}">${c}</div>`;
+  });
+  services.forEach(s=>{
+    const pair = MATCH_PAIRS.find(p=>p.service===s);
+    const isMatched = state._matchState.matched.includes(pair.company);
+    html += `<div class="match-item ${isMatched?'matched':''}" onclick="selectMatch('service','${s}')" id="ms-${s.replace(/\s/g,'')}">${s}</div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+let matchSelected = null;
+function selectMatch(kind, value){
+  const domId = kind==="company" ? "mc-"+value : "ms-"+value.replace(/\s/g,'');
+  if(!matchSelected){ matchSelected={kind,value}; document.getElementById(domId).classList.add("selected"); return; }
+  if(matchSelected.kind===kind){
+    document.querySelectorAll(".match-item.selected").forEach(e=>e.classList.remove("selected"));
+    matchSelected={kind,value};
+    document.getElementById(domId).classList.add("selected");
+    return;
+  }
+  const company = kind==="company" ? value : matchSelected.value;
+  const service = kind==="service" ? value : matchSelected.value;
+  const correct = MATCH_PAIRS.find(p=>p.company===company && p.service===service);
+  document.querySelectorAll(".match-item.selected").forEach(e=>e.classList.remove("selected"));
+  matchSelected = null;
+  if(correct){
+    state._matchState.matched.push(company);
+    addXP(10);
+    showToast(randomPositive());
+    if(state._matchState.matched.length===MATCH_PAIRS.length){ completeActivity("match-services"); }
+    renderSection1();
+  } else {
+    showToast(randomGentle());
+  }
+}
+
+/* =====================================================
+   PHẦN 2 — CLOUD DRIVE LAB
+   ===================================================== */
+function initDriveData(){
+  if(!state.drive){
+    state.drive = {files:[
+      {name:"Bài tập Tin học", type:"folder"},
+      {name:"Nhóm 1", type:"folder"},
+      {name:"Kế hoạch nhóm.docx", type:"doc"},
+      {name:"Phân công.xlsx", type:"sheet"},
+      {name:"Poster.png", type:"image"},
+      {name:"Ôn tập.pdf", type:"pdf"}
+    ]};
+  }
+}
+function fileIcon(type){ return {folder:"📁",doc:"📄",sheet:"📊",image:"🖼",pdf:"📕"}[type] || "📄"; }
+function renderSection2(){
+  initDriveData();
+  const t1=state.completedActivities.includes("create-folder"), t2=state.completedActivities.includes("upload-file"),
+        t3=state.completedActivities.includes("download-file"), t4=state.completedActivities.includes("search-file"),
+        t5=state.completedActivities.includes("rename-file");
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card">
+      <span class="pill">PHẦN 2 · CLOUD DRIVE LAB</span>
+      <div class="section-title">☁ MY CLOUD DRIVE</div>
+      <div class="section-sub">Nhiệm vụ 1: Tạo thư mục <strong>BAI_TAP_NHOM</strong>. Nhiệm vụ 2: Đưa <strong>KeHoachNhom.docx</strong> từ máy tính lên Cloud.</div>
+      <div class="drive">
+        <div class="drive-toolbar">
+          <button class="btn btn-secondary" onclick="driveCreateFolder()">+ NEW (thư mục)</button>
+          <input type="text" id="drive-search" placeholder="🔍 Search..." oninput="driveSearch(this.value)">
+        </div>
+        <div class="drive-body" id="drive-body"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="driveUploadFile()">⬆ Upload: KeHoachNhom.docx</button>
+        <button class="btn btn-secondary" onclick="driveDownloadFile()">⬇ Download: Ôn tập.pdf</button>
+      </div>
+      <div id="drive-upload-progress" class="upload-progress hidden"><div class="bar" id="drive-upload-bar"></div></div>
+      <div id="drive-feedback" class="feedback-box"></div>
+      <div class="checklist" style="margin-top:16px;">
+        <li style="${t1?'':'opacity:.35; text-decoration:line-through;'}">Tạo thư mục BAI_TAP_NHOM</li>
+        <li style="${t2?'':'opacity:.35; text-decoration:line-through;'}">Upload tệp lên Cloud</li>
+        <li style="${t3?'':'opacity:.35; text-decoration:line-through;'}">Download tệp về máy</li>
+        <li style="${t4?'':'opacity:.35; text-decoration:line-through;'}">Tìm kiếm tệp</li>
+        <li style="${t5?'':'opacity:.35; text-decoration:line-through;'}">Đổi tên một tệp</li>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" ${sectionUnlocked(3)?"":"disabled"} onclick="goToSection(3)">TIẾP THEO: Chia sẻ & Phân quyền →</button>
+    </div>
+  </div>`;
+  renderDriveBody(state.drive.files);
+}
+function renderDriveBody(files){
+  const body = $("#drive-body");
+  if(!files.length){ body.innerHTML = `<p style="color:#4c6f88; text-align:center; padding:16px;">Không tìm thấy tệp/thư mục nào.</p>`; return; }
+  body.innerHTML = files.map((f,i)=>`
+    <div class="file-row">
+      <span class="emoji">${fileIcon(f.type)}</span>
+      <span class="name">${f.name}</span>
+      <div class="actions">
+        <button onclick="driveRenamePrompt(${i})">Đổi tên</button>
+        <button onclick="driveSelectForShare('${f.name.replace(/'/g,"\\'")}')">Chia sẻ</button>
+      </div>
+    </div>`).join("");
+}
+function driveCreateFolder(){
+  $("#app").insertAdjacentHTML("beforeend", `
+  <div class="modal-overlay" id="folder-modal">
+    <div class="modal-box">
+      <h3>+ NEW — Tạo thư mục</h3>
+      <div class="field"><input type="text" id="folder-name-input" placeholder="Gợi ý: BAI_TAP_NHOM"></div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="document.getElementById('folder-modal').remove()">Hủy</button>
+        <button class="btn btn-primary" onclick="confirmCreateFolder()">Tạo thư mục</button>
+      </div>
+    </div>
+  </div>`);
+}
+function confirmCreateFolder(){
+  const name = $("#folder-name-input").value.trim();
+  if(!name) return;
+  state.drive.files.unshift({name, type:"folder"});
+  document.getElementById("folder-modal").remove();
+  renderDriveBody(state.drive.files);
+  const fb = $("#drive-feedback"); fb.className="feedback-box show good"; fb.innerHTML=`✅ Thư mục "${name}" đã được tạo. ${randomPositive()}`;
+  completeActivity("create-folder"); addXP(6);
+}
+function driveRenamePrompt(i){
+  const f = state.drive.files[i];
+  const newName = prompt("Đổi tên thành:", f.name);
+  if(newName && newName.trim()){
+    f.name = newName.trim();
+    renderDriveBody(state.drive.files);
+    completeActivity("rename-file"); addXP(4);
+    showToast("✓ Đã đổi tên");
+  }
+}
+function driveUploadFile(){
+  const wrap=$("#drive-upload-progress"), bar=$("#drive-upload-bar");
+  wrap.classList.remove("hidden");
+  let p=0;
+  const timer=setInterval(()=>{
+    p+=25; bar.style.width=p+"%";
+    if(p>=100){
+      clearInterval(timer);
+      state.drive.files.unshift({name:"KeHoachNhom.docx", type:"doc"});
+      renderDriveBody(state.drive.files);
+      const fb=$("#drive-feedback"); fb.className="feedback-box show good";
+      fb.innerHTML="✅ Upload hoàn tất! UPLOAD: Máy tính → Cloud.";
+      completeActivity("upload-file"); addXP(6);
+      setTimeout(()=>wrap.classList.add("hidden"),900);
+    }
+  },260);
+}
+function driveDownloadFile(){
+  const fb=$("#drive-feedback"); fb.className="feedback-box show good";
+  fb.innerHTML="⬇ Đã tải Ôn tập.pdf về máy. DOWNLOAD: Cloud → Máy tính.";
+  completeActivity("download-file"); addXP(5);
+}
+function driveSearch(query){
+  const q=query.trim().toLowerCase();
+  const filtered = q ? state.drive.files.filter(f=>f.name.toLowerCase().includes(q)) : state.drive.files;
+  renderDriveBody(filtered);
+  if(q && filtered.some(f=>f.name.toLowerCase().includes("kehoachnhom"))){ completeActivity("search-file"); addXP(6); }
+}
+function driveSelectForShare(name){ goToSection(3); setTimeout(()=>openShareModal(name),200); }
+
+/* =====================================================
+   PHẦN 3 — CHIA SẺ & PHÂN QUYỀN
+   ===================================================== */
+const SHARE_SITUATIONS = [
+  {id:"share-1", text:"Giáo viên chỉ cần xem sản phẩm.", correct:"viewer"},
+  {id:"share-2", text:"Giáo viên cần đọc và góp ý nhưng không trực tiếp sửa.", correct:"commenter"},
+  {id:"share-3", text:"Ba thành viên cùng viết báo cáo.", correct:"editor"}
+];
+const PERM_LABELS = {viewer:"👁 Người xem", commenter:"💬 Người nhận xét", editor:"✏️ Người chỉnh sửa"};
+function renderSection3(){
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card">
+      <span class="pill pill-violet">PHẦN 3 · CHIA SẺ &amp; PHÂN QUYỀN</span>
+      <div class="section-title">🔗 Chia sẻ "Kế hoạch nhóm.docx"</div>
+      <div class="section-sub">Nguyên tắc: ĐÚNG NGƯỜI + ĐÚNG TỆP + ĐÚNG QUYỀN.</div>
+      <div id="share-situations"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" ${sectionUnlocked(4)?"":"disabled"} onclick="goToSection(4)">TIẾP THEO: Cloud Rescue 🎮 →</button>
+    </div>
+  </div>`;
+  const box=$("#share-situations");
+  box.innerHTML = SHARE_SITUATIONS.map((s,i)=>`
+    <div style="margin-bottom:18px; padding-bottom:14px; ${i<SHARE_SITUATIONS.length-1?'border-bottom:1px solid var(--line);':''}">
+      <p><strong>Tình huống ${i+1}:</strong> ${s.text}</p>
+      <div class="choice-list" id="scl-${s.id}">
+        ${Object.keys(PERM_LABELS).map(p=>`<button class="choice-btn" onclick="answerShare('${s.id}','${p}',this)">${PERM_LABELS[p]}</button>`).join("")}
+      </div>
+      <div class="feedback-box" id="sfb-${s.id}"></div>
+    </div>
+  `).join("");
+}
+function answerShare(id, chosen, btn){
+  const s = SHARE_SITUATIONS.find(x=>x.id===id);
+  const fb = $("#sfb-"+id);
+  const already = state.completedActivities.includes(id);
+  fb.classList.add("show");
+  if(chosen === s.correct){
+    document.querySelectorAll("#scl-"+id+" .choice-btn").forEach(b=>b.disabled=true);
+    btn.classList.add("correct");
+    fb.className="feedback-box show good";
+    fb.innerHTML = randomPositive() + " " + PERM_LABELS[s.correct] + " là phù hợp nhất.";
+    if(!already){ completeActivity(id); addXP(6); }
+    saveResponseLog(id, s.text, chosen, true, (state.answers[id+"_attempts"]||0)+1);
+  } else {
+    btn.classList.add("incorrect");
+    const attempts = (state.answers[id+"_attempts"]||0)+1;
+    state.answers[id+"_attempts"] = attempts;
+    fb.className="feedback-box show bad";
+    if(attempts>=2){
+      document.querySelectorAll("#scl-"+id+" .choice-btn").forEach(b=>b.disabled=true);
+      fb.innerHTML = `Gợi ý: hãy chọn mức quyền thấp nhất nhưng vẫn đáp ứng nhiệm vụ. Đáp án đúng là ${PERM_LABELS[s.correct]}.`;
+      if(!already) completeActivity(id);
+      saveResponseLog(id, s.text, chosen, false, attempts);
+    } else {
+      fb.innerHTML = `Người này chỉ cần ${PERM_LABELS[s.correct]==='✏️ Người chỉnh sửa'?'quyền phù hợp hơn':'đọc hoặc góp ý'}. Em có cần cấp quyền chỉnh sửa không? Hãy thử lại.`;
+      document.querySelectorAll("#scl-"+id+" .choice-btn").forEach(b=>{ if(b!==btn) b.disabled=false; });
+    }
+  }
+}
+function openShareModal(fileName){
+  currentShareTarget = fileName;
+  $("#app").insertAdjacentHTML("beforeend", `
+  <div class="modal-overlay" id="share-modal">
+    <div class="modal-box">
+      <h3>Chia sẻ "${fileName}"</h3>
+      <div class="field">
+        <label class="field-label">Người nhận</label>
+        <div class="share-recipients">
+          <span class="recipient-chip">An</span><span class="recipient-chip">Bình</span><span class="recipient-chip">Lan</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Quyền</label>
+        <select id="share-permission-select">
+          <option value="viewer">👁 Người xem</option>
+          <option value="commenter">💬 Người nhận xét</option>
+          <option value="editor">✏️ Người chỉnh sửa</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="document.getElementById('share-modal').remove()">Hủy</button>
+        <button class="btn btn-primary" onclick="sendShare()">Gửi</button>
+      </div>
+    </div>
+  </div>`);
+}
+function sendShare(){
+  const perm = $("#share-permission-select").value;
+  document.getElementById("share-modal").remove();
+  showToast(`Đã chia sẻ "${currentShareTarget}" — quyền: ${PERM_LABELS[perm]}`);
+}
+
+/* =====================================================
+   PHẦN 4 — CLOUD RESCUE (GAME)
+   ===================================================== */
+const GAME_TASKS = [
+  {id:"game-1", title:"Nhiệm vụ 1 — Chọn quyền cho Bình", text:"Bình chỉ cần xem BaoCao.docx để nắm tiến độ. Chọn quyền phù hợp:",
+    options:{viewer:"👁 Người xem", editor:"✏️ Người chỉnh sửa"}, correct:"viewer"},
+  {id:"game-2", title:"Nhiệm vụ 2 — Upload hay Download?", text:"Chi vừa hoàn thành Poster.png trên máy tính và cần đưa lên nhóm Cloud chung. Chi nên:",
+    options:{upload:"⬆ Upload lên Cloud", download:"⬇ Download về máy"}, correct:"upload"},
+  {id:"game-3", title:"Nhiệm vụ 3 — Tìm tệp thất lạc", text:"Cả nhóm không tìm thấy PhanCong.xlsx trong hàng chục tệp. Cách nhanh nhất là:",
+    options:{search:"🔍 Dùng công cụ Tìm kiếm", scroll:"Kéo chuột xem từng tệp một"}, correct:"search"},
+  {id:"game-4", title:"Nhiệm vụ 4 — Phát hiện quyền sai", text:"Dũng phát hiện Poster.png (đã hoàn thiện, chỉ cần giáo viên xem) đang được chia sẻ với quyền Người chỉnh sửa cho cả lớp. Dũng nên:",
+    options:{fix:"Đổi lại thành Người xem", leave:"Không cần đổi, để vậy cũng được"}, correct:"fix"},
+  {id:"game-5", title:"Nhiệm vụ 5 — Ba bạn cùng viết báo cáo", text:"An, Bình, Chi cần cùng lúc chỉnh sửa BaoCao.docx. Quyền phù hợp nhất:",
+    options:{editor:"✏️ Người chỉnh sửa", commenter:"💬 Người nhận xét"}, correct:"editor"}
+];
+function renderSection4(){
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card">
+      <span class="pill pill-violet">PHẦN 4 · CLOUD RESCUE 🎮</span>
+      <div class="section-title">☁️ Giải cứu bài tập nhóm</div>
+      <div class="section-sub">Nhóm An – Bình – Chi – Dũng cần xử lí nhanh các tình huống Cloud. Hoàn thành đúng liên tiếp để nhận Combo!</div>
+      <div id="game-tasks"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" ${sectionUnlocked(5)?"":"disabled"} onclick="goToSection(5)">TIẾP THEO: Quiz + Exit Ticket →</button>
+    </div>
+  </div>`;
+  renderGameTasks();
+}
+function renderGameTasks(){
+  const box = $("#game-tasks");
+  box.innerHTML = GAME_TASKS.map(t=>{
+    const done = state.completedActivities.includes(t.id);
+    return `<div class="game-task-card">
+      <h4>${t.title} ${done?'✅':''}</h4>
+      <p>${t.text}</p>
+      <div class="choice-list" id="gtcl-${t.id}">
+        ${done ? "" : Object.keys(t.options).map(k=>`<button class="choice-btn" onclick="answerGameTask('${t.id}','${k}',this)">${t.options[k]}</button>`).join("")}
+      </div>
+      <div class="feedback-box" id="gtfb-${t.id}"></div>
+    </div>`;
+  }).join("");
+}
+function answerGameTask(id, chosen, btn){
+  const t = GAME_TASKS.find(x=>x.id===id);
+  const fb = $("#gtfb-"+id);
+  document.querySelectorAll("#gtcl-"+id+" .choice-btn").forEach(b=>b.disabled=true);
+  fb.classList.add("show");
+  if(chosen === t.correct){
+    btn.classList.add("correct");
+    state.combo = (state.combo||0) + 1;
+    fb.className="feedback-box show good";
+    fb.innerHTML = "🎯 Đúng quyền – đúng người! " + (state.combo>=3 ? `🔥 Combo ${state.combo}! Em đang quản lí Cloud rất tốt!` : randomPositive());
+    completeActivity(id);
+    addXP(10 + Math.min(state.combo*2, 10));
+    if(state.combo===GAME_TASKS.length){ showToast("☁️ Cloud Master +20 XP!"); addXP(20); }
+  } else {
+    btn.classList.add("incorrect");
+    state.combo = 0;
+    fb.className="feedback-box show bad";
+    fb.innerHTML = randomGentle();
+    completeActivity(id);
+  }
+  saveLocalProgress();
+  setTimeout(renderGameTasks, 700);
+}
+
+/* =====================================================
+   PHẦN 5 — QUIZ + EXIT TICKET + MINDMAP
+   ===================================================== */
+const QUIZ_QUESTIONS = [
+  {id:"q1", q:"Đưa tệp từ máy tính lên Google Drive gọi là gì?", options:["Download","Upload","Delete","Print"], correct:1},
+  {id:"q2", q:"Ba học sinh cùng chỉnh sửa báo cáo nhóm. Nên sử dụng quyền:", options:["Người xem","Người nhận xét","Người chỉnh sửa"], correct:2},
+  {id:"q3", q:"Trước khi chia sẻ tài liệu cần kiểm tra điều gì?", options:["Chỉ người nhận","Chỉ quyền truy cập","Cả người nhận, tệp và quyền"], correct:2},
+  {id:"q4", q:"Dịch vụ nào sau đây KHÔNG phải lưu trữ trực tuyến?", options:["Google Drive","Microsoft Paint","OneDrive","Dropbox"], correct:1},
+  {id:"q5", q:"Minh gửi tài liệu cho Lan, Lan chỉ cần đọc. Quyền phù hợp nhất:", options:["Người chỉnh sửa","Người nhận xét","Người xem"], correct:2},
+  {id:"q6", q:"Đưa tệp từ Cloud về máy tính gọi là:", options:["Upload","Download","Share"], correct:1},
+  {id:"q7", q:"Một tệp lưu trên Cloud có ưu điểm nào?", options:["Chỉ dùng được trên một máy duy nhất","Có thể truy cập từ nhiều thiết bị qua Internet","Không bao giờ cần Internet"], correct:1},
+  {id:"q8", q:"Người chỉ được xem và bình luận, không được sửa trực tiếp là:", options:["Người xem","Người nhận xét","Người chỉnh sửa"], correct:1}
+];
+function renderSection5(){
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card"><span class="pill">PHẦN 5 · QUIZ</span><div class="section-title">📝 Mini Quiz</div><div id="quiz-area"></div></div>
+    <div class="card" id="exit-ticket-card" style="${state.completedActivities.includes('quiz')?'':'display:none;'}">
+      <div class="section-title">🎫 Exit Ticket</div><div id="exit-ticket-area"></div>
+    </div>
+    <div class="card" id="mindmap-card" style="${state.completedActivities.includes('exit-ticket')?'':'display:none;'}">
+      <div class="section-title">🧠 Tóm tắt bằng sơ đồ tư duy</div>
+      <div class="mindmap-demo">
+        <div class="mindmap-center">☁<br>LƯU TRỮ & CHIA SẺ<br>TRÊN INTERNET</div>
+        <div class="mindmap-branches">
+          <div class="mindmap-branch">☁ Lưu trữ</div><div class="mindmap-branch">📁 Quản lí</div>
+          <div class="mindmap-branch">🔗 Chia sẻ</div><div class="mindmap-branch">🔐 Quyền</div>
+        </div>
+      </div>
+      <p>Hãy vẽ sơ đồ này ra giấy với 4 nhánh chính, thêm nhánh con và biểu tượng minh họa.</p>
+      <ul class="checklist">
+        <li>Có chủ đề trung tâm</li><li>Có ít nhất 4 nhánh chính</li><li>Dùng từ khóa, không viết câu dài</li>
+        <li>Có nhánh con</li><li>Có ít nhất 3 hình/icon</li><li>Có màu sắc phân biệt nhánh</li>
+      </ul>
+      <div class="field">
+        <label class="field-label">Nhánh nào em cho là quan trọng nhất?</label>
+        <select id="mindmap-branch-select">
+          <option value="storage">Lưu trữ</option><option value="manage">Quản lí</option>
+          <option value="share">Chia sẻ</option><option value="permission">Quyền</option>
+        </select>
+      </div>
+      <div class="field"><label class="field-label">Vì sao?</label><textarea id="mindmap-why"></textarea></div>
+      <div class="btn-row"><button class="btn btn-amber" onclick="completeMindmap()">✅ EM ĐÃ HOÀN THÀNH MINDMAP</button></div>
+    </div>
+    <div class="btn-row" id="final-nav" style="${state.completedActivities.includes('mindmap')?'':'display:none;'}">
+      <button class="btn btn-primary" onclick="goToSection(6)">XEM KẾT QUẢ CUỐI CÙNG 🎉</button>
+    </div>
+  </div>`;
+  renderQuiz();
+  if(state.completedActivities.includes("quiz")) renderExitTicketArea();
+}
+let quizIndex=0, quizAnswers=[];
+function renderQuiz(){
+  if(state.completedActivities.includes("quiz")){
+    $("#quiz-area").innerHTML = `<div class="feedback-box show good">✓ Em đã hoàn thành Quiz — điểm: ${state.quizScore}/${QUIZ_QUESTIONS.length}</div>`;
+    return;
+  }
+  const q = QUIZ_QUESTIONS[quizIndex];
+  $("#quiz-area").innerHTML = `
+    <div class="quiz-progress">Câu ${quizIndex+1} / ${QUIZ_QUESTIONS.length}</div>
+    <p><strong>${q.q}</strong></p>
+    <div class="choice-list" id="quiz-choices">${q.options.map((o,i)=>`<button class="choice-btn" onclick="answerQuiz(${i},this)">${o}</button>`).join("")}</div>
+    <div id="quiz-feedback" class="feedback-box"></div>`;
+}
+function answerQuiz(i, btn){
+  const q = QUIZ_QUESTIONS[quizIndex];
+  document.querySelectorAll("#quiz-choices .choice-btn").forEach(b=>b.disabled=true);
+  const fb = $("#quiz-feedback"); fb.classList.add("show");
+  const isCorrect = i===q.correct;
+  if(isCorrect){ btn.classList.add("correct"); fb.className="feedback-box show good"; fb.innerHTML="✓ "+randomPositive(); }
+  else { btn.classList.add("incorrect"); fb.className="feedback-box show bad"; fb.innerHTML="Chưa đúng. Đáp án: "+q.options[q.correct]; state.quizWrong.push(q.id); }
+  quizAnswers.push(isCorrect);
+  saveResponseLog("quiz", q.q, q.options[i], isCorrect, 1, q.id);
+  setTimeout(()=>{
+    quizIndex++;
+    if(quizIndex >= QUIZ_QUESTIONS.length){
+      state.quizScore = quizAnswers.filter(Boolean).length;
+      completeActivity("quiz"); addXP(12);
+      $("#exit-ticket-card").style.display="block";
+      renderExitTicketArea(); renderQuiz();
+    } else { renderQuiz(); }
+  }, 1100);
+}
+function renderExitTicketArea(){
+  if(state.completedActivities.includes("exit-ticket")){
+    $("#exit-ticket-area").innerHTML = `<div class="feedback-box show good">✓ Em đã nộp Exit Ticket. Cảm ơn em!</div>`;
+    $("#mindmap-card").style.display="block";
+    return;
+  }
+  $("#exit-ticket-area").innerHTML = `
+    <div class="field"><label class="field-label">1. Hôm nay em học được điều gì quan trọng nhất?</label><textarea id="et-learned"></textarea></div>
+    <div class="field"><label class="field-label">2. Em chia sẻ tài liệu cho một bạn chỉ cần đọc. Em chọn quyền nào?</label>
+      <select id="et-permission"><option value="viewer">Người xem</option><option value="commenter">Người nhận xét</option><option value="editor">Người chỉnh sửa</option></select>
+    </div>
+    <div class="field"><label class="field-label">3. Vì sao em chọn quyền đó?</label><textarea id="et-explain"></textarea></div>
+    <div class="field"><label class="field-label">4. Mức độ hiểu bài của em</label>
+      <select id="et-understanding">
+        <option value="1">😕 1 — Em chưa hiểu</option><option value="2">😐 2 — Em hiểu một phần</option>
+        <option value="3">🙂 3 — Em hiểu khá tốt</option><option value="4">😄 4 — Em có thể tự thực hiện</option>
+        <option value="5">🤩 5 — Em có thể hướng dẫn bạn</option>
+      </select>
+    </div>
+    <div class="field"><label class="field-label">5. Phần nào trong bài khiến em khó hiểu nhất?</label>
+      <select id="et-difficult">
+        <option value="cloud">Cloud Storage</option><option value="uploaddownload">Upload / Download</option>
+        <option value="manage">Quản lí tệp</option><option value="share">Chia sẻ</option>
+        <option value="permission">Phân quyền</option><option value="none">Không có</option>
+      </select>
+    </div>
+    <div class="field"><label class="field-label">6. Em muốn thầy giải thích lại điều gì?</label><textarea id="et-need-explain"></textarea></div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="submitExitTicket()">Nộp Exit Ticket</button></div>`;
+}
+function submitExitTicket(){
+  state.exitTicket = {
+    learned: $("#et-learned").value, permissionAnswer: $("#et-permission").value,
+    explanation: $("#et-explain").value, understanding: $("#et-understanding").value,
+    difficultPart: $("#et-difficult").value, needExplanation: $("#et-need-explain").value
+  };
+  callScript("saveExitTicket", {studentKey: studentKey(state.studentId), lessonId: state.lessonId, hoTen: state.hoTen, lop: state.lop, ...state.exitTicket});
+  completeActivity("exit-ticket"); addXP(6);
+  renderExitTicketArea();
+}
+function completeMindmap(){
+  state.exitTicket.importantBranch = $("#mindmap-branch-select").value;
+  state.exitTicket.reflection = $("#mindmap-why").value;
+  state.exitTicket.mindmapCompleted = true;
+  callScript("saveExitTicket", {studentKey: studentKey(state.studentId), lessonId: state.lessonId, hoTen: state.hoTen, lop: state.lop, ...state.exitTicket, mindmapCompleted:"TRUE"});
+  completeActivity("mindmap"); addXP(4);
+  $("#final-nav").style.display="flex";
+  showToast("🎉 Hoàn thành mindmap!");
+}
+function saveResponseLog(activityId, question, answer, correct, attempts, questionId){
+  callScript("saveResponse", {
+    studentKey: studentKey(state.studentId), lessonId: state.lessonId,
+    activityId: activityId, questionId: questionId || activityId,
+    question: question, answer: answer, correct: correct?"TRUE":"FALSE", attempts: attempts, score: correct?1:0
+  });
+}
+
+/* =====================================================
+   COMPLETION SCREEN
+   ===================================================== */
+const ACHIEVEMENTS = [
+  {id:"cloud-explorer", icon:"☁", label:"CLOUD EXPLORER", need:["cloud-intro","match-services"]},
+  {id:"file-manager", icon:"📁", label:"FILE MANAGER", need:["create-folder","upload-file"]},
+  {id:"share-master", icon:"🔗", label:"SHARE MASTER", need:["share-1","share-2","share-3"]},
+  {id:"cloud-rescuer", icon:"🎮", label:"CLOUD RESCUER", need:["game-1","game-2","game-3","game-4","game-5"]}
+];
+function renderCompletion(){
+  const totalSeconds = state.activeLearningTime || 0;
+  const minutes = Math.round(totalSeconds/60);
+  if(state.progressPercent>=100 && !state.fastCompletion && minutes>0 && minutes<10){
+    state.fastCompletion = true;
+    saveLocalProgress();
+    showToast("⚡ Em hoàn thành rất nhanh! Hãy kiểm tra lại Quiz và Mindmap để chắc rằng mình đã hiểu bài nhé.");
+  }
+  const earned = ACHIEVEMENTS.filter(a=>a.need.every(n=>state.completedActivities.includes(n)));
+  syncToGoogleSheets();
+  $("#app").innerHTML = `
+  <div class="screen">
+    <div class="card" style="text-align:center;">
+      <h1>🎉 HOÀN THÀNH BÀI 6!</h1>
+      <p><strong>${state.hoTen}</strong> — Lớp ${state.lop}</p>
+      ${state.fastCompletion ? `<div class="feedback-box show bad" style="text-align:left;">⚡ Em hoàn thành rất nhanh! Hãy kiểm tra lại Quiz và Mindmap để chắc rằng mình đã hiểu bài nhé.</div>` : ""}
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num">${state.progressPercent}%</div><div class="lbl">Tiến độ</div></div>
+        <div class="stat-card"><div class="num">${state.quizScore}/${QUIZ_QUESTIONS.length}</div><div class="lbl">Quiz</div></div>
+        <div class="stat-card"><div class="num">${state.xp}</div><div class="lbl">XP</div></div>
+        <div class="stat-card"><div class="num">${minutes}p</div><div class="lbl">Thời gian học</div></div>
+      </div>
+      <div class="badge-grid" style="justify-content:center;">
+        ${ACHIEVEMENTS.map(a=>`<div class="badge ${earned.includes(a)?'earned':''}">${a.icon} ${a.label}</div>`).join("")}
+      </div>
+      <p style="margin-top:16px; color:#4c6f88; font-style:italic;">"Cloud không chỉ giúp em lưu tệp ở một nơi khác. Điều quan trọng hơn là em biết cách tổ chức, chia sẻ và cộng tác đúng cách."</p>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn btn-secondary" onclick="changeStudent()">👤 Đổi học sinh</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =====================================================
+   TEACHER MODE
+   ===================================================== */
+function openTeacherLogin(){
+  $("#app").insertAdjacentHTML("beforeend", `
+  <div class="modal-overlay" id="teacher-login-modal">
+    <div class="modal-box">
+      <h3>👨‍🏫 Teacher Mode</h3>
+      <p style="font-size:12.5px; color:#4c6f88;">Mã sẽ được xác thực với máy chủ.</p>
+      <div class="field"><input type="text" id="teacher-code-input" placeholder="Nhập mã giáo viên"></div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="document.getElementById('teacher-login-modal').remove()">Hủy</button>
+        <button class="btn btn-primary" onclick="checkTeacherCode()">Vào Dashboard</button>
+      </div>
+    </div>
+  </div>`);
+}
+async function checkTeacherCode(){
+  const code = $("#teacher-code-input").value;
+  let valid = false;
+  if(DEMO_MODE){
+    valid = (code === CONFIG.teacherCode);
+  } else {
+    const res = await callScript("verifyTeacherCode", {code});
+    valid = res && res.ok && res.valid;
+  }
+  if(valid){
+    document.getElementById("teacher-login-modal").remove();
+    openTeacherDashboard();
+  } else {
+    showToast("Sai mã giáo viên.");
+  }
+}
+async function openTeacherDashboard(){
+  $("#app").insertAdjacentHTML("beforeend", `
+  <div class="modal-overlay" id="teacher-dash-modal">
+    <div class="modal-box" style="max-width:820px;">
+      <h3>📊 Teacher Dashboard</h3>
+      <div id="teacher-dash-body">Đang tải dữ liệu...</div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="document.getElementById('teacher-dash-modal').remove()">Đóng</button>
+        <button class="btn btn-secondary" onclick="loadTeacherDashboard()">🔄 Làm mới</button>
+      </div>
+    </div>
+  </div>`);
+  await loadTeacherDashboard();
+}
+async function loadTeacherDashboard(){
+  const body = $("#teacher-dash-body");
+  if(!body) return;
+  if(DEMO_MODE){ body.innerHTML = `<p>Không có dữ liệu máy chủ ở chế độ DEMO.</p>`; return; }
+  const res = await callScript("getTeacherData", {schoolYear: CONFIG.schoolYear, lessonId: CONFIG.lessonId});
+  if(!res || !res.ok){ body.innerHTML = `<p>Không tải được dữ liệu.</p>`; return; }
+  const s = res.summary || {};
+  const fb = res.feedback || {};
+  body.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${s.total||0}</div><div class="lbl">Tổng học sinh</div></div>
+      <div class="stat-card"><div class="num">${s.completed||0}</div><div class="lbl">Hoàn thành</div></div>
+      <div class="stat-card"><div class="num">${s.inProgress||0}</div><div class="lbl">Đang học</div></div>
+      <div class="stat-card"><div class="num">${s.avgProgress||0}%</div><div class="lbl">Tiến độ TB</div></div>
+      <div class="stat-card"><div class="num">${s.avgQuiz||0}</div><div class="lbl">Điểm Quiz TB</div></div>
+      <div class="stat-card"><div class="num">${s.avgUnderstanding||0}</div><div class="lbl">Mức hiểu TB</div></div>
+      <div class="stat-card"><div class="num">${s.exitTickets||0}</div><div class="lbl">Exit Ticket</div></div>
+      <div class="stat-card"><div class="num">${s.mindmapDone||0}</div><div class="lbl">Mindmap xong</div></div>
+      <div class="stat-card"><div class="num">⚡ ${s.fastCompletion||0}</div><div class="lbl">Hoàn thành &lt;10p</div></div>
+    </div>
+    <div class="filters-row">
+      <select id="tf-class" onchange="filterTeacherTable()"><option value="">Tất cả lớp</option>${[...new Set((res.students||[]).map(x=>x.Lop))].map(c=>`<option>${c}</option>`).join("")}</select>
+      <input type="text" id="tf-name" placeholder="Tìm theo tên" oninput="filterTeacherTable()">
+      <select id="tf-status" onchange="filterTeacherTable()"><option value="">Tất cả trạng thái</option><option value="done">Hoàn thành</option><option value="progress">Đang học</option><option value="fast">Hoàn thành nhanh</option></select>
+    </div>
+    <table class="roster-table">
+      <thead><tr><th>Họ tên</th><th>Lớp</th><th>Tiến độ</th><th>Quiz</th><th>Thời gian</th><th>Hiểu bài</th><th>Exit Ticket</th></tr></thead>
+      <tbody id="tf-tbody">
+        ${(res.students||[]).map(x=>`<tr data-lop="${x.Lop}" data-name="${(x.HoTen||'').toLowerCase()}" data-done="${x.Completed}" data-fast="${x.FastCompletion}">
+          <td>${x.HoTen}${String(x.FastCompletion).toUpperCase()==="TRUE"?' ⚡':''}</td><td>${x.Lop}</td><td>${x.Progress||0}%</td><td>${x.QuizScore||0}</td>
+          <td>${Math.round((x.ActiveLearningTime||0)/60)}p</td><td>${x.Understanding||'-'}</td><td>${x.ExitSubmitted?'✓':'—'}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+    <div class="card" style="margin-top:16px; background:var(--paper);">
+      <h4>📊 Phản hồi bài dạy</h4>
+      <p><strong>Câu Quiz sai nhiều nhất:</strong> ${(fb.mostMissedQuestions||[]).map(m=>`${m.questionId} (${m.count} lượt sai)`).join(", ") || "Chưa có dữ liệu"}</p>
+      <p><strong>Nội dung học sinh thấy khó nhất:</strong> ${fb.hardestTopic || "Chưa có dữ liệu"}</p>
+      <p><strong>Học sinh muốn giải thích lại:</strong></p>
+      <ul>${(fb.needExplanationList||[]).slice(0,10).map(t=>`<li>${t}</li>`).join("") || "<li>Chưa có dữ liệu</li>"}</ul>
+    </div>
+  `;
+}
+function filterTeacherTable(){
+  const cls = $("#tf-class").value.toLowerCase();
+  const name = $("#tf-name").value.toLowerCase();
+  const status = $("#tf-status").value;
+  document.querySelectorAll("#tf-tbody tr").forEach(tr=>{
+    let show = true;
+    if(cls && tr.dataset.lop.toLowerCase() !== cls) show = false;
+    if(name && !tr.dataset.name.includes(name)) show = false;
+    if(status==="done" && tr.dataset.done!=="TRUE") show = false;
+    if(status==="progress" && tr.dataset.done==="TRUE") show = false;
+    if(status==="fast" && tr.dataset.fast!=="TRUE") show = false;
+    tr.style.display = show ? "" : "none";
+  });
+}
+
+/* =====================================================
+   RECONNECT SYNC
+   ===================================================== */
+window.addEventListener("online", ()=>{ if(state){ showToast("☁ Đã có mạng — đang đồng bộ..."); syncToGoogleSheets(); } });
+window.addEventListener("beforeunload", ()=>{ if(state) saveLocalProgress(); });
+
+/* =====================================================
+   BOOT
+   ===================================================== */
+initApp();
+</script>
+</body>
+</html>
