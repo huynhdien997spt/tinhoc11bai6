@@ -66,6 +66,11 @@ label.field-label{display:block; font-weight:700; font-size:13px; color:var(--bl
 #save-end-btn{position:fixed; right:18px; bottom:18px; z-index:60; background:var(--white); border:1px solid var(--line);
   box-shadow:var(--shadow); border-radius:999px; padding:11px 18px; font-weight:700; color:var(--blue-900); font-size:13.5px;}
 
+#teacher-fab{position:fixed; right:18px; top:14px; z-index:80; background:var(--blue-900); color:#fff; border:none;
+  box-shadow:var(--shadow); border-radius:999px; padding:9px 16px; font-weight:700; font-size:13px; cursor:pointer;}
+#teacher-fab:hover{background:var(--blue-700);}
+@media (max-width:600px){ #teacher-fab{top:auto; bottom:66px; right:14px; padding:8px 12px; font-size:12px;} }
+
 .welcome-hero{text-align:center; padding:20px 10px 6px;}
 .cloud-graphic{font-size:52px; margin-bottom:6px;}
 .welcome-hero h1{font-size:24px; color:var(--blue-900);}
@@ -152,9 +157,10 @@ table.roster-table th, table.roster-table td{border-bottom:1px solid var(--line)
   </div>
   <span id="sync-badge" class="demo">DEMO MODE</span>
   <span class="xp-badge">⭐ <span id="xp-display">0</span> XP</span>
-  <button class="icon-btn" onclick="openTeacherLogin()">👨‍🏫 Teacher</button>
   <button class="icon-btn" onclick="changeStudent()">👤 Đổi học sinh</button>
 </div>
+
+<button id="teacher-fab" onclick="openTeacherLogin()">👨‍🏫 Teacher Mode</button>
 
 <div id="app"></div>
 
@@ -171,13 +177,17 @@ const CONFIG = {
   lessonId: "TIN11_BAI6",
   lessonName: "Bài 6. Lưu trữ và chia sẻ tệp tin trên Internet",
   schoolYear: "2026-2027",
-  googleScriptUrl: "https://script.google.com/macros/s/AKfycbzrhzpgUHc6KBI6andw1ZmZtpsFk9XUrF68MRyGybqNkWQIQwdb4BGRqANw8S9Il3-kWg/exec"
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbzrhzpgUHc6КВI6andw1ZmZtpsFk9XUrF68MRyGybqNkWQIQwdb4BGRqANw8S9I13-kWg/exec"
 };
 
 const DEMO_MODE = !CONFIG.googleScriptUrl || CONFIG.googleScriptUrl.indexOf("PASTE_") === 0;
 
 const FALLBACK_ROSTER = [
-
+  {StudentID:"HS001", HoTen:"Nguyễn Văn An", Lop:"11A1"},
+  {StudentID:"HS002", HoTen:"Trần Minh Bình", Lop:"11A1"},
+  {StudentID:"HS003", HoTen:"Lê Thị Chi", Lop:"11A1"},
+  {StudentID:"HS004", HoTen:"Phạm Văn Dũng", Lop:"11A2"},
+  {StudentID:"HS005", HoTen:"Đỗ Thị Hoa", Lop:"11A2"}
 ];
 
 /* =====================================================
@@ -1057,13 +1067,32 @@ function renderCompletion(){
 /* =====================================================
    TEACHER MODE
    ===================================================== */
+function toggleTeacherCodeVisibility(){
+  const input = $("#teacher-code-input");
+  const btn = $("#teacher-code-toggle");
+  if(!input) return;
+  if(input.type === "password"){
+    input.type = "text";
+    btn.textContent = "🙈";
+  } else {
+    input.type = "password";
+    btn.textContent = "👁";
+  }
+}
 function openTeacherLogin(){
   $("#app").insertAdjacentHTML("beforeend", `
   <div class="modal-overlay" id="teacher-login-modal">
     <div class="modal-box">
       <h3>👨‍🏫 Teacher Mode</h3>
       <p style="font-size:12.5px; color:#4c6f88;">Mã sẽ được xác thực với máy chủ.</p>
-      <div class="field"><input type="text" id="teacher-code-input" placeholder="Nhập mã giáo viên"></div>
+      <div class="field">
+        <div style="position:relative;">
+          <input type="password" id="teacher-code-input" placeholder="Nhập mã giáo viên" style="padding-right:44px;">
+          <button type="button" id="teacher-code-toggle" onclick="toggleTeacherCodeVisibility()"
+            style="position:absolute; right:6px; top:50%; transform:translateY(-50%); border:none; background:transparent; font-size:17px; padding:4px 6px; cursor:pointer; color:#4c6f88;"
+            aria-label="Hiện/ẩn mã giáo viên">👁</button>
+        </div>
+      </div>
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="document.getElementById('teacher-login-modal').remove()">Hủy</button>
         <button class="btn btn-primary" onclick="checkTeacherCode()">Vào Dashboard</button>
